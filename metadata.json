@@ -1,0 +1,6 @@
+{
+  "name": "CreatorPay",
+  "description": "An interactive, high-end YouTube and TikTok earnings calculator based on 2026 real-world platform metrics and CPM/RPM niches.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
