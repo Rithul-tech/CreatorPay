@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import InteractiveConsole from './components/InteractiveConsole';
+import GeminiChatbot from './components/GeminiChatbot';
+import CreatorPayLogo from './components/CreatorPayLogo';
+import AdSenseBanner from './components/AdSenseBanner';
 
 export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -16,8 +19,8 @@ export default function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-100 font-sans selection:bg-zinc-800 selection:text-white ${
-      theme === 'dark' ? 'bg-[#121214] text-zinc-300' : 'bg-[#F8FAFC] text-zinc-700'
-    }`}>
+      theme === 'dark' ? 'bg-[#121214]' : 'bg-[#F8FAFC]'
+    } ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'}`}>
       
       {/* Container */}
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-12">
@@ -28,11 +31,7 @@ export default function App() {
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className={`text-lg font-bold tracking-tight ${
-                theme === 'dark' ? 'text-white' : 'text-zinc-900'
-              }`}>
-                CreatorPay
-              </span>
+              <CreatorPayLogo theme={theme} />
               <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${
                 theme === 'dark' 
                   ? 'text-zinc-400 bg-zinc-900 border-zinc-800' 
@@ -42,12 +41,7 @@ export default function App() {
               </span>
             </div>
             
-            <div className="flex items-center gap-4">
-              {/* SYSTEM STATUS */}
-              <div className="hidden sm:block text-[10px] font-mono text-zinc-500 tracking-wider uppercase">
-                SYSTEM STATUS: STABLE // RPM VERSION: 2026.01
-              </div>
-
+            <div className="flex items-center gap-3">
               {/* Elegant Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
@@ -61,12 +55,12 @@ export default function App() {
                 {theme === 'dark' ? (
                   <>
                     <Sun className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Light Mode</span>
+                    <span className="hidden md:inline">Light Mode</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-3.5 h-3.5 text-zinc-500" />
-                    <span>Dark Mode</span>
+                    <span className="hidden md:inline">Dark Mode</span>
                   </>
                 )}
               </button>
@@ -88,24 +82,14 @@ export default function App() {
         </header>
 
         {/* MAIN UTILITY CONSOLE */}
-        <main>
+        <main className="space-y-8">
           <InteractiveConsole theme={theme} />
+          <GeminiChatbot theme={theme} />
         </main>
 
         {/* GOOGLE ADSENSE RESPONSIVE FOOTER BANNER */}
         <section>
-          <div className={`w-full min-h-[90px] border border-dashed rounded-lg flex flex-col items-center justify-center text-[10px] font-mono tracking-widest text-center p-6 ${
-            theme === 'dark' 
-              ? 'border-zinc-800 text-zinc-500 bg-zinc-900/10' 
-              : 'border-zinc-200 text-zinc-500 bg-zinc-100/50'
-          }`}>
-            <span className={`${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'} font-semibold mb-1`}>
-              [Google AdSense Responsive Horizontal Anchor Banner]
-            </span>
-            <span className="text-[9px] text-zinc-500 font-sans tracking-normal">
-              (Auto-optimized anchor display asset configured for passive publisher matching)
-            </span>
-          </div>
+          <AdSenseBanner theme={theme} />
         </section>
 
         {/* STRATEGIC OPTIMIZATION GRID */}
@@ -160,86 +144,6 @@ export default function App() {
               <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
                 Direct publisher ad commissions are only the base of a professional creator business structure. Top digital operators leverage stable ad impressions purely to cover initial production overheads, while routing primary viewers towards proprietary digital products, sponsors, and fan communities.
               </p>
-            </div>
-          </div>
-        </section>
-
-        {/* GLOBAL CREATOR AFFILIATE RESOURCE DIRECTORY */}
-        <section className="space-y-6 pt-4">
-          <div className="space-y-1">
-            <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>
-              Curated Creator Resource Index
-            </h2>
-            <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'}`}>
-              Professional software integrations to optimize watch time, target competitive keyword volumes, and build clean production loops.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Tool 1 */}
-            <div className={`border rounded-lg p-5 flex flex-col justify-between space-y-4 ${
-              theme === 'dark' ? 'bg-[#1A1A1E] border-zinc-800' : 'bg-white border-zinc-200 shadow-sm'
-            }`}>
-              <div className="space-y-2">
-                <h3 className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Video Editing Software</h3>
-                <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  Highly efficient software packages with built-in styling, transcription presets, and seamless layout utilities to hold viewer attention.
-                </p>
-              </div>
-              <a 
-                href="https://www.capcut.com" 
-                target="_blank" 
-                rel="noreferrer"
-                className={`text-xs font-semibold hover:underline ${
-                  theme === 'dark' ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'
-                }`}
-              >
-                Explore Recommended Editors →
-              </a>
-            </div>
-
-            {/* Tool 2 */}
-            <div className={`border rounded-lg p-5 flex flex-col justify-between space-y-4 ${
-              theme === 'dark' ? 'bg-[#1A1A1E] border-zinc-800' : 'bg-white border-zinc-200 shadow-sm'
-            }`}>
-              <div className="space-y-2">
-                <h3 className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Metadata SEO Toolkits</h3>
-                <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  Analyze high-competition keywords, track regional CPM indexes, and research rising trends to align scripts with optimal advertising channels.
-                </p>
-              </div>
-              <a 
-                href="https://vidiq.com" 
-                target="_blank" 
-                rel="noreferrer"
-                className={`text-xs font-semibold hover:underline ${
-                  theme === 'dark' ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'
-                }`}
-              >
-                Browse SEO Toolkits →
-              </a>
-            </div>
-
-            {/* Tool 3 */}
-            <div className={`border rounded-lg p-5 flex flex-col justify-between space-y-4 ${
-              theme === 'dark' ? 'bg-[#1A1A1E] border-zinc-800' : 'bg-white border-zinc-200 shadow-sm'
-            }`}>
-              <div className="space-y-2">
-                <h3 className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Copyright-Safe Music</h3>
-                <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  Access licensed background soundtracks and audio profiles designed specifically for retention-based retention sequencing.
-                </p>
-              </div>
-              <a 
-                href="https://www.epidemicsound.com" 
-                target="_blank" 
-                rel="noreferrer"
-                className={`text-xs font-semibold hover:underline ${
-                  theme === 'dark' ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'
-                }`}
-              >
-                Access Sound Databases →
-              </a>
             </div>
           </div>
         </section>

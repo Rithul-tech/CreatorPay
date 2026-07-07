@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Basic profile data for a signed-in creator.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLoginAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Calculation": {
+      "title": "Calculation Record",
+      "description": "A saved calculation record for estimated earnings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "platform": { "type": "string", "enum": ["youtube", "tiktok"] },
+        "videoFormat": { "type": "string", "enum": ["long", "short"] },
+        "niche": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "monthlyViews": { "type": "integer" },
+        "lowPayout": { "type": "number" },
+        "highPayout": { "type": "number" },
+        "localRpm": { "type": "number" },
+        "currencySymbol": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "label": { "type": "string" }
+      },
+      "required": [
+        "userId",
+        "platform",
+        "videoFormat",
+        "niche",
+        "countryCode",
+        "monthlyViews",
+        "lowPayout",
+        "highPayout",
+        "localRpm",
+        "currencySymbol",
+        "createdAt",
+        "label"
+      ]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profiles containing public profile info of registered creators."
+    },
+    "users/{userId}/saved_calculations/{calcId}": {
+      "schema": "Calculation",
+      "description": "Saved creator ad earnings calculations for a user"
+    }
+  }
+}

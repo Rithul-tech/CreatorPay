@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+  <!-- Soft drop shadow for extra definition on varying browser tab background colors -->
+  <defs>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <g filter="url(#glow)">
+    <!-- Bar 1: Leftmost short bar with elegant angled top -->
+    <path
+      d="M15 80 V55 L30 46 V80 Z"
+      fill="#10B981"
+    />
+
+    <!-- Bar 2: Middle bar with beautiful diagonal split shading -->
+    <path
+      d="M37 80 V37 L52 28 V80 Z"
+      fill="#10B981"
+    />
+    <!-- Shaded right side of Bar 2 for the premium 3D depth effect from the reference logo -->
+    <path
+      d="M44.5 80 V32.5 L52 28 V80 Z"
+      fill="#059669"
+      opacity="0.3"
+    />
+
+    <!-- Bar 3: Rightmost tall bar with integrated upward-trending arrow -->
+    <path
+      d="M59 80 V19 L74 10 V80 Z"
+      fill="#10B981"
+    />
+    <!-- Shaded right side of Bar 3 -->
+    <path
+      d="M66.5 80 V14.5 L74 10 V80 Z"
+      fill="#059669"
+      opacity="0.3"
+    />
+
+    <!-- Bold, dynamic Upward Arrow Head crowning the trend -->
+    <!-- The arrow base overlaps and emerges dynamically from Bar 3, pointing up and to the right -->
+    <path
+      d="M55 42 L85 12 M85 12 H70 M85 12 V27"
+      stroke="#10B981"
+      stroke-width="10"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    
+    <!-- Inner arrow core highlight for that precise polished finish -->
+    <path
+      d="M55 42 L85 12"
+      stroke="#ffffff"
+      stroke-width="2"
+      stroke-linecap="round"
+      opacity="0.3"
+    />
+  </g>
+</svg>
