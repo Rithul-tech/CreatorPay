@@ -35,6 +35,19 @@ const PRESET_QUESTIONS = [
 ];
 
 // A helper to parse bold, italic, and inline code formatting for beautiful responses
+const getApiUrl = (path: string): string => {
+  if (typeof window === 'undefined') return path;
+  const host = window.location.hostname;
+  const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+  const isCloudRun = host.endsWith('.run.app');
+  
+  if (!isLocalhost && !isCloudRun) {
+    // Direct requests to the actual production Cloud Run backend
+    return `https://creatorpay-688963400642.asia-southeast1.run.app${path}`;
+  }
+  return path;
+};
+
 function parseFormattedText(text: string, theme: 'dark' | 'light'): React.ReactNode {
   const parts = text.split(/(\*\*.*?\*\*|`.*?`|\*.*?\*)/g);
   return (
@@ -185,7 +198,7 @@ export default function GeminiChatbot({ theme = 'dark' }: GeminiChatbotProps) {
         text: msg.text
       }));
 
-      const response = await fetch('/api/consult', {
+      const response = await fetch(getApiUrl('/api/consult'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
