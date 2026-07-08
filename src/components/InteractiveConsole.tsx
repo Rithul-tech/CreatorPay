@@ -435,12 +435,12 @@ export default function InteractiveConsole({ theme = 'dark' }: InteractiveConsol
                     : `linear-gradient(to right, #71717a 0%, #71717a ${viewsToSlider(monthlyViews)}%, #e4e4e7 ${viewsToSlider(monthlyViews)}%, #e4e4e7 100%)`
                 }}
               />
-              <div className="flex justify-between text-[10px] font-mono text-zinc-600">
-                <span>1K</span>
-                <span>10K</span>
-                <span>100K</span>
-                <span>1M</span>
-                <span>25M</span>
+              <div className="relative w-full h-4 text-[10px] font-mono text-zinc-500 mt-1 select-none pointer-events-none">
+                <span className="absolute left-0">1K</span>
+                <span className="absolute -translate-x-1/2" style={{ left: '22.74%' }}>10K</span>
+                <span className="absolute -translate-x-1/2" style={{ left: '45.48%' }}>100K</span>
+                <span className="absolute -translate-x-1/2" style={{ left: '68.21%' }}>1M</span>
+                <span className="absolute right-0">25M</span>
               </div>
             </div>
 

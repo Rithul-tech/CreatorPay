@@ -228,20 +228,19 @@ I can give you custom breakdowns on:
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, lowLatency } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       res.status(400).json({ error: 'Messages array is required' });
       return;
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server' });
-      return;
-    }
+    // Filter out leading assistant/greeting messages to ensure history starts with a user message
+    const firstUserIndex = messages.findIndex((m: any) => m.role === 'user');
+    const slicedMessages = firstUserIndex !== -1 ? messages.slice(firstUserIndex) : messages;
 
     // Format messages for @google/genai SDK
-    const contents = messages.map((m: any) => ({
+    const contents = slicedMessages.map((m: any) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.text }],
     }));
@@ -256,62 +255,86 @@ Your domain knowledge includes:
 
 Always give precise, actionable, and data-backed advice. Use clean Markdown styling for readability (bullet points, bold text, mini tables if appropriate). Keep answers structured and professional. You are operating in 2026, so refer to 2026 platform dynamics and current trends. Ensure search grounding is used if searching for recent ad rates or keyword metrics.`;
 
+    const hasApiKey = !!process.env.GEMINI_API_KEY;
     let geminiResponse;
     let fallbackUsed = false;
-    let localExpertUsed = false;
+    let isLiteModel = false;
+    let localExpertUsed = !hasApiKey;
 
-    try {
-      // Tier 1: Try gemini-3.5-flash with search grounding
-      geminiResponse = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: contents,
-        config: {
-          systemInstruction: systemInstruction,
-          tools: [{ googleSearch: {} }],
-        },
-      });
-    } catch (searchError: any) {
-      console.log('Tier 1 Info (gemini-3.5-flash with Search): Search grounding limit hit. Falling back smoothly.');
-      
-      try {
-        // Tier 2: Try gemini-3.5-flash without search grounding
-        geminiResponse = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
-          contents: contents,
-          config: {
-            systemInstruction: systemInstruction,
-          },
-        });
-        fallbackUsed = true;
-      } catch (tier2Error: any) {
-        console.log('Tier 2 Info (gemini-3.5-flash without Search): Limit hit. Trying alternate model tiers.');
-        
+    if (hasApiKey) {
+      // Direct routing for user-requested Low-Latency mode
+      if (lowLatency) {
         try {
-          // Tier 3: Try standard gemini-2.5-flash which might have different quotas
+          console.log('Low latency mode activated: Requesting gemini-3.1-flash-lite');
           geminiResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.1-flash-lite',
             contents: contents,
             config: {
               systemInstruction: systemInstruction,
             },
           });
-          fallbackUsed = true;
-        } catch (tier3Error: any) {
-          console.log('Tier 3 Info (gemini-2.5-flash): Alternate limit hit. Trying next fallback.');
+          isLiteModel = true;
+        } catch (liteError: any) {
+          console.warn('Primary low-latency gemini-3.1-flash-lite request failed, entering standard fallbacks:', liteError.message);
+        }
+      }
+
+      // Standard multi-tier model flow
+      if (!geminiResponse) {
+        try {
+          // Tier 1: Try gemini-3.5-flash with search grounding
+          geminiResponse = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            contents: contents,
+            config: {
+              systemInstruction: systemInstruction,
+              tools: [{ googleSearch: {} }],
+            },
+          });
+        } catch (searchError: any) {
+          console.log('Tier 1 Info (gemini-3.5-flash with Search): Search grounding limit hit. Falling back smoothly.');
           
           try {
-            // Tier 4: Try gemini-1.5-flash
+            // Tier 2: Try gemini-3.5-flash without search grounding
             geminiResponse = await ai.models.generateContent({
-              model: 'gemini-1.5-flash',
+              model: 'gemini-3.5-flash',
               contents: contents,
               config: {
                 systemInstruction: systemInstruction,
               },
             });
             fallbackUsed = true;
-          } catch (tier4Error: any) {
-            console.log('Tier 4 Info: Offline expert database fallback triggered.');
-            localExpertUsed = true;
+          } catch (tier2Error: any) {
+            console.log('Tier 2 Info (gemini-3.5-flash without Search): Limit hit. Trying alternate model tiers.');
+            
+            try {
+              // Tier 3: Try standard gemini-2.5-flash which might have different quotas
+              geminiResponse = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: contents,
+                config: {
+                  systemInstruction: systemInstruction,
+                },
+              });
+              fallbackUsed = true;
+            } catch (tier3Error: any) {
+              console.log('Tier 3 Info (gemini-2.5-flash): Alternate limit hit. Trying next fallback.');
+              
+              try {
+                // Tier 4: Try gemini-3.1-flash-lite
+                geminiResponse = await ai.models.generateContent({
+                  model: 'gemini-3.1-flash-lite',
+                  contents: contents,
+                  config: {
+                    systemInstruction: systemInstruction,
+                  },
+                });
+                fallbackUsed = true;
+              } catch (tier4Error: any) {
+                console.log('Tier 4 Info: Offline expert database fallback triggered.');
+                localExpertUsed = true;
+              }
+            }
           }
         }
       }
@@ -320,8 +343,12 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
     if (localExpertUsed) {
       const userLatestQuery = messages[messages.length - 1]?.text || '';
       const replyText = getLocalExpertResponse(userLatestQuery);
+      const noticeText = !hasApiKey
+        ? `\n\n*(Note: For personalized answers using our real-time search engine, you can configure your GEMINI_API_KEY in the **Settings > Secrets** panel. In the meantime, you are connected to our built-in offline expert database with optimal 2026 guidelines.)*`
+        : `\n\n*(Note: CreatorPay Server fallback active. Due to high global demand, your request is being handled by our built-in offline expert database with optimal 2026 guidelines.)*`;
+      
       res.json({
-        text: `${replyText}\n\n*(Note: CreatorPay Server fallback active. Due to high global demand, your request is being handled by our built-in offline expert database with optimal 2026 guidelines.)*`,
+        text: `${replyText}${noticeText}`,
         sources: []
       });
       return;
@@ -342,10 +369,15 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
     // Deduplicate sources
     const uniqueSources = Array.from(new Map(sources.map((s: any) => [s.uri, s])).values());
 
+    let finalNote = '';
+    if (isLiteModel) {
+      finalNote = '\n\n*(⚡ Low-Latency response generated instantly by gemini-3.1-flash-lite)*';
+    } else if (fallbackUsed) {
+      finalNote = '\n\n*(Note: Real-time search is currently paused due to quota limits; providing optimized knowledge-base advice.)*';
+    }
+
     res.json({
-      text: fallbackUsed 
-        ? `${replyText}\n\n*(Note: Real-time search is currently paused due to quota limits; providing optimized knowledge-base advice.)*`
-        : replyText,
+      text: `${replyText}${finalNote}`,
       sources: uniqueSources,
     });
   } catch (error: any) {
