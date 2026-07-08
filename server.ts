@@ -257,7 +257,7 @@ I can give you custom breakdowns on:
 - **Shorts vs. Long-form video strategies** (Monetization comparisons)`;
 }
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/consult', async (req, res) => {
   try {
     const { messages, lowLatency } = req.body;
 
@@ -292,11 +292,20 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
     let isLiteModel = false;
     let localExpertUsed = !hasApiKey;
 
+    const fs = await import('fs');
+    const logDebug = (msg: string) => {
+      try {
+        fs.appendFileSync('server_debug.log', `${new Date().toISOString()} - ${msg}\n`);
+      } catch (e) {}
+    };
+
+    logDebug(`Chat request received. hasApiKey: ${hasApiKey}, apiKey length: ${process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0}`);
+
     if (hasApiKey) {
       // Direct routing for user-requested Low-Latency mode
       if (lowLatency) {
         try {
-          console.log('Low latency mode activated: Requesting gemini-3.1-flash-lite');
+          logDebug('Attempting gemini-3.1-flash-lite (Low Latency)...');
           geminiResponse = await withTimeout(ai.models.generateContent({
             model: 'gemini-3.1-flash-lite',
             contents: contents,
@@ -305,7 +314,9 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
             },
           }), 4000, 'gemini-3.1-flash-lite timed out');
           isLiteModel = true;
+          logDebug('gemini-3.1-flash-lite SUCCESS');
         } catch (liteError: any) {
+          logDebug(`gemini-3.1-flash-lite FAILED: ${liteError.message}`);
           console.warn('Primary low-latency gemini-3.1-flash-lite request failed, entering standard fallbacks:', liteError.message);
         }
       }
@@ -313,6 +324,7 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
       // Standard multi-tier model flow (without search grounding to ensure extreme speed and stability in chat)
       if (!geminiResponse) {
         try {
+          logDebug('Attempting Tier 1: gemini-3.5-flash...');
           // Tier 1: Try standard gemini-3.5-flash (without search grounding)
           console.log('Requesting standard gemini-3.5-flash for chat...');
           geminiResponse = await withTimeout(ai.models.generateContent({
@@ -322,10 +334,13 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
               systemInstruction: systemInstruction,
             },
           }), 4000, 'gemini-3.5-flash timed out');
+          logDebug('gemini-3.5-flash SUCCESS');
         } catch (tier1Error: any) {
+          logDebug(`gemini-3.5-flash FAILED: ${tier1Error.message}`);
           console.log('Tier 1 Info (gemini-3.5-flash): Limit hit or timed out. Trying alternate tiers:', tier1Error.message);
           
           try {
+            logDebug('Attempting Tier 2: gemini-2.5-flash...');
             // Tier 2: Try standard gemini-2.5-flash
             console.log('Requesting gemini-2.5-flash fallback...');
             geminiResponse = await withTimeout(ai.models.generateContent({
@@ -336,10 +351,13 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
               },
             }), 4000, 'gemini-2.5-flash timed out');
             fallbackUsed = true;
+            logDebug('gemini-2.5-flash SUCCESS');
           } catch (tier2Error: any) {
+            logDebug(`gemini-2.5-flash FAILED: ${tier2Error.message}`);
             console.log('Tier 2 Info (gemini-2.5-flash): Alternate limit hit or timed out. Trying gemini-3.1-flash-lite...');
             
             try {
+              logDebug('Attempting Tier 3: gemini-3.1-flash-lite...');
               // Tier 3: Try standard gemini-3.1-flash-lite
               geminiResponse = await withTimeout(ai.models.generateContent({
                 model: 'gemini-3.1-flash-lite',
@@ -349,7 +367,9 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
                 },
               }), 4000, 'gemini-3.1-flash-lite fallback timed out');
               fallbackUsed = true;
+              logDebug('gemini-3.1-flash-lite Tier 3 SUCCESS');
             } catch (tier3Error: any) {
+              logDebug(`gemini-3.1-flash-lite Tier 3 FAILED: ${tier3Error.message}`);
               console.log('Tier 3 Info: All cloud models timed out or failed. Triggering offline expert database fallback.');
               localExpertUsed = true;
             }
@@ -359,6 +379,7 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
     }
 
     if (localExpertUsed) {
+      logDebug('Falling back to local expert response.');
       const userLatestQuery = messages[messages.length - 1]?.text || '';
       const replyText = getLocalExpertResponse(userLatestQuery);
       const noticeText = !hasApiKey

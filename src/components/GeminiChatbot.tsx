@@ -185,7 +185,7 @@ export default function GeminiChatbot({ theme = 'dark' }: GeminiChatbotProps) {
         text: msg.text
       }));
 
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/consult', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

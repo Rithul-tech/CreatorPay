@@ -436,11 +436,11 @@ export default function InteractiveConsole({ theme = 'dark' }: InteractiveConsol
                 }}
               />
               <div className="relative w-full h-4 text-[10px] font-mono text-zinc-500 mt-1 select-none pointer-events-none">
-                <span className="absolute left-0">1K</span>
-                <span className="absolute -translate-x-1/2" style={{ left: '22.74%' }}>10K</span>
-                <span className="absolute -translate-x-1/2" style={{ left: '45.48%' }}>100K</span>
-                <span className="absolute -translate-x-1/2" style={{ left: '68.21%' }}>1M</span>
-                <span className="absolute right-0">25M</span>
+                <span className="absolute" style={{ left: '6px' }}>1K</span>
+                <span className="absolute -translate-x-1/2" style={{ left: 'calc(6px + 0.2274 * (100% - 12px))' }}>10K</span>
+                <span className="absolute -translate-x-1/2" style={{ left: 'calc(6px + 0.4548 * (100% - 12px))' }}>100K</span>
+                <span className="absolute -translate-x-1/2" style={{ left: 'calc(6px + 0.6821 * (100% - 12px))' }}>1M</span>
+                <span className="absolute" style={{ right: '6px' }}>25M</span>
               </div>
             </div>
 
