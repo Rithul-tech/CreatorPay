@@ -21,6 +21,14 @@ const ai = new GoogleGenAI({
   }
 });
 
+// Helper to wrap promises with a timeout to avoid hanging connections
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string = 'Operation timed out'): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), ms))
+  ]);
+}
+
 // API Endpoint for Search-Grounded Niche & Region Trends
 app.post('/api/niche-trends', async (req, res) => {
   try {
@@ -57,15 +65,38 @@ Please return your response as a JSON object with this EXACT structure (valid JS
   ]
 }`;
 
-    const geminiResponse = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        // Request JSON back
-        responseMimeType: 'application/json',
-      },
-    });
+    let geminiResponse;
+    let fallbackUsed = false;
+
+    try {
+      // Enforce a strict 5-second timeout on search grounding to avoid any network freezes
+      geminiResponse = await withTimeout(ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          // Request JSON back
+          responseMimeType: 'application/json',
+        },
+      }), 5000, 'Search grounding timed out');
+    } catch (searchError: any) {
+      console.warn('Search grounding failed or timed out. Falling back smoothly to standard generation without search:', searchError.message);
+      
+      try {
+        // Fall back instantly to standard fast generation (under 1s)
+        geminiResponse = await withTimeout(ai.models.generateContent({
+          model: 'gemini-3.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        }), 4000, 'Standard generation timed out');
+        fallbackUsed = true;
+      } catch (fallbackError: any) {
+        console.error('Niche trends fallback model also failed:', fallbackError.message);
+        throw fallbackError;
+      }
+    }
 
     const resultText = geminiResponse.text?.trim() || '{}';
     let parsedData = { summary: '', estimatedRpmRange: '', strategies: [] };
@@ -266,74 +297,61 @@ Always give precise, actionable, and data-backed advice. Use clean Markdown styl
       if (lowLatency) {
         try {
           console.log('Low latency mode activated: Requesting gemini-3.1-flash-lite');
-          geminiResponse = await ai.models.generateContent({
+          geminiResponse = await withTimeout(ai.models.generateContent({
             model: 'gemini-3.1-flash-lite',
             contents: contents,
             config: {
               systemInstruction: systemInstruction,
             },
-          });
+          }), 4000, 'gemini-3.1-flash-lite timed out');
           isLiteModel = true;
         } catch (liteError: any) {
           console.warn('Primary low-latency gemini-3.1-flash-lite request failed, entering standard fallbacks:', liteError.message);
         }
       }
 
-      // Standard multi-tier model flow
+      // Standard multi-tier model flow (without search grounding to ensure extreme speed and stability in chat)
       if (!geminiResponse) {
         try {
-          // Tier 1: Try gemini-3.5-flash with search grounding
-          geminiResponse = await ai.models.generateContent({
+          // Tier 1: Try standard gemini-3.5-flash (without search grounding)
+          console.log('Requesting standard gemini-3.5-flash for chat...');
+          geminiResponse = await withTimeout(ai.models.generateContent({
             model: 'gemini-3.5-flash',
             contents: contents,
             config: {
               systemInstruction: systemInstruction,
-              tools: [{ googleSearch: {} }],
             },
-          });
-        } catch (searchError: any) {
-          console.log('Tier 1 Info (gemini-3.5-flash with Search): Search grounding limit hit. Falling back smoothly.');
+          }), 4000, 'gemini-3.5-flash timed out');
+        } catch (tier1Error: any) {
+          console.log('Tier 1 Info (gemini-3.5-flash): Limit hit or timed out. Trying alternate tiers:', tier1Error.message);
           
           try {
-            // Tier 2: Try gemini-3.5-flash without search grounding
-            geminiResponse = await ai.models.generateContent({
-              model: 'gemini-3.5-flash',
+            // Tier 2: Try standard gemini-2.5-flash
+            console.log('Requesting gemini-2.5-flash fallback...');
+            geminiResponse = await withTimeout(ai.models.generateContent({
+              model: 'gemini-2.5-flash',
               contents: contents,
               config: {
                 systemInstruction: systemInstruction,
               },
-            });
+            }), 4000, 'gemini-2.5-flash timed out');
             fallbackUsed = true;
           } catch (tier2Error: any) {
-            console.log('Tier 2 Info (gemini-3.5-flash without Search): Limit hit. Trying alternate model tiers.');
+            console.log('Tier 2 Info (gemini-2.5-flash): Alternate limit hit or timed out. Trying gemini-3.1-flash-lite...');
             
             try {
-              // Tier 3: Try standard gemini-2.5-flash which might have different quotas
-              geminiResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+              // Tier 3: Try standard gemini-3.1-flash-lite
+              geminiResponse = await withTimeout(ai.models.generateContent({
+                model: 'gemini-3.1-flash-lite',
                 contents: contents,
                 config: {
                   systemInstruction: systemInstruction,
                 },
-              });
+              }), 4000, 'gemini-3.1-flash-lite fallback timed out');
               fallbackUsed = true;
             } catch (tier3Error: any) {
-              console.log('Tier 3 Info (gemini-2.5-flash): Alternate limit hit. Trying next fallback.');
-              
-              try {
-                // Tier 4: Try gemini-3.1-flash-lite
-                geminiResponse = await ai.models.generateContent({
-                  model: 'gemini-3.1-flash-lite',
-                  contents: contents,
-                  config: {
-                    systemInstruction: systemInstruction,
-                  },
-                });
-                fallbackUsed = true;
-              } catch (tier4Error: any) {
-                console.log('Tier 4 Info: Offline expert database fallback triggered.');
-                localExpertUsed = true;
-              }
+              console.log('Tier 3 Info: All cloud models timed out or failed. Triggering offline expert database fallback.');
+              localExpertUsed = true;
             }
           }
         }
